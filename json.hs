@@ -20,7 +20,7 @@ compressJson :: String -> String
 compressJson json = compress json False False ""
     -- compress params: json, inStr, aferEscape, acc
     where compress []          _     _     acc = acc
-          compress ('\"' : xs) inStr False acc = compress xs (not inStr) False acc
+          compress ('\"' : xs) inStr False acc = compress xs (not inStr) False (acc ++ "\"")
           compress ('\\' : xs) inStr False acc = compress xs inStr       True  acc
           compress (x    : xs) inStr True  acc = compress xs inStr       False (acc ++ ['\\', x])
           compress (x    : xs) True  False acc = compress xs True        False (acc ++ [x])
