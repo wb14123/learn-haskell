@@ -1,10 +1,3 @@
--- module SimpleJson
--- (
---     JValue(..)
---   , compressJson
--- ) where
-
-
 import           Data.List (intercalate)
 
 
