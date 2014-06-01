@@ -1,8 +1,8 @@
-module SimpleJson
-(
-    JValue(..)
-  , compressJson
-) where
+-- module SimpleJson
+-- (
+--     JValue(..)
+--   , compressJson
+-- ) where
 
 
 import           Data.List (intercalate)
@@ -17,14 +17,14 @@ data JValue = JString String
 
 
 compressJson :: String -> String
-compressJson json = compress json False False ""
-    -- compress params: json, inStr, aferEscape, acc
-    where compress []          _     _     acc = acc
-          compress ('\"' : xs) inStr False acc = compress xs (not inStr) False (acc ++ "\"")
-          compress ('\\' : xs) inStr False acc = compress xs inStr       True  acc
-          compress (x    : xs) inStr True  acc = compress xs inStr       False (acc ++ ['\\', x])
-          compress (x    : xs) True  False acc = compress xs True        False (acc ++ [x])
-          compress (x    : xs) False _     acc = compress xs False       False (acc ++ parse x)
+compressJson json = compress json False False
+    -- compress params: json, inStr, aferEscape
+    where compress []          _     _     = ""
+          compress ('\"' : xs) inStr False = '\"' :     compress xs (not inStr) False
+          compress ('\\' : xs) inStr False =            compress xs inStr       True
+          compress (x    : xs) inStr True  = '\\' : x : compress xs inStr       False
+          compress (x    : xs) True  False = x :        compress xs True        False
+          compress (x    : xs) False _     = parse x ++ compress xs False       False
 
           parse c = if c `elem` " \t\n"
               then []
@@ -45,3 +45,6 @@ instance Show JValue where
         where pairs ps    = intercalate ", " (map pair ps)
 	      pair (s, v) = "\"" ++ s ++ "\" : " ++ show v
 
+
+main :: IO ()
+main = interact compressJson
