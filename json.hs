@@ -17,9 +17,8 @@ compressJson json = compress json False False
     -- compress params: json, inStr, aferEscape
     where compress []          _     _     = ""
           compress ('\"' : xs) inStr False = '\"' :     compress xs (not inStr) False
-          compress ('\\' : xs) inStr False =            compress xs inStr       True
-          compress (x    : xs) inStr True  = '\\' : x : compress xs inStr       False
-          compress (x    : xs) True  False = x :        compress xs True        False
+          compress ('\\' : xs) inStr False = '\\' :     compress xs inStr       True
+          compress (x    : xs) True  _     = x :        compress xs True        False
           compress (x    : xs) False _     = parse x ++ compress xs False       False
 
           parse c = if c `elem` " \t\n"
@@ -94,7 +93,7 @@ showJson (JArray a)  = "[" ++ array a ++ "]"
     where array xs = intercalate "," (map showJson xs)
 
 showJson (JObject o) = "{" ++ pairs o ++ "}"
-    where pairs ps    = intercalate ", " (map pair ps)
+    where pairs ps    = intercalate "," (map pair ps)
           pair (s, v) = "\"" ++ s ++ "\":" ++ showJson v
 -----------------------------------------
 
