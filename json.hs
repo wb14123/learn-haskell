@@ -1,4 +1,4 @@
-import           Data.List (intercalate)
+import Data.List (intercalate)
 
 
 data JValue = JString String
@@ -7,8 +7,11 @@ data JValue = JString String
             | JObject [(String, JValue)]
             | JArray  [JValue]
             | JNull
+              deriving (Show)
 
 
+-----------------------------------------
+-- Compress JSON
 compressJson :: String -> String
 compressJson json = compress json False False
     -- compress params: json, inStr, aferEscape
@@ -22,22 +25,79 @@ compressJson json = compress json False False
           parse c = if c `elem` " \t\n"
               then []
               else [c]
+-----------------------------------------
 
 
-instance Show JValue where
-    show JNull         = "null"
-    show (JString s)   = "\"" ++ show s ++ "\""
-    show (JBool True)  = "true"
-    show (JBool False) = "false"
-    show (JNumber n)   = show n
+-----------------------------------------
+-- Split JSON, used in parse JSON
+splitJson :: Char -> String -> [String]
+splitJson spliter json       = innerSplit json spliter Nothing ""
 
-    show (JArray a)  = "[" ++ array a ++ "]"
-        where array xs = intercalate "," (map show xs)
+innerSplit :: String -> Char -> Maybe Char -> String -> [String]
+innerSplit ""        _       _        word = [word]
+innerSplit ('[' :xs) spliter Nothing  word = innerSplit xs spliter (Just ']')  (word ++ "[")
+innerSplit ('{' :xs) spliter Nothing  word = innerSplit xs spliter (Just '}')  (word ++ "{")
+innerSplit ('\"':xs) spliter Nothing  word = innerSplit xs spliter (Just '\"') (word ++ "\"")
 
-    show (JObject o) = "{" ++ pairs o ++ "}"
-        where pairs ps    = intercalate ", " (map pair ps)
-              pair (s, v) = "\"" ++ s ++ "\" : " ++ show v
+innerSplit (x   :xs) spliter Nothing  word = if spliter == x
+    then word : innerSplit xs spliter Nothing ""
+    else        innerSplit xs spliter Nothing (word ++ [x])
+
+innerSplit (x   :xs) spliter (Just encloser) word = if encloser == x
+    then innerSplit xs spliter Nothing         (word ++ [x])
+    else innerSplit xs spliter (Just encloser) (word ++ [x])
+
+
+removeEnclose :: String -> String
+removeEnclose (_:s) = innerRemove s
+    where innerRemove [_]    = ""
+          innerRemove (x:xs) = x:innerRemove xs
+-----------------------------------------
+
+
+-----------------------------------------
+-- Parse JSON
+readJson :: String -> JValue
+readJson ('{':xs)  = readJObjects ('{':xs)
+readJson ('[':xs)  = readJArray   ('[':xs)
+readJson xs        = readJValue   xs
+
+readJObjects :: String -> JValue
+readJObjects = JObject . map readJObject . splitJson ',' . removeEnclose
+
+readJObject :: String -> (String, JValue)
+readJObject = parse . splitJson ':'
+    where parse [k, v] = (removeEnclose k, readJson v)
+
+readJArray :: String -> JValue
+readJArray = JArray . map readJson . splitJson ',' . removeEnclose
+
+readJValue :: String -> JValue
+readJValue "true"     = JBool True
+readJValue "false"    = JBool False
+readJValue "null"     = JNull
+readJValue ('\"': xs) = (JString . removeEnclose) ('\"':xs)
+readJValue other         = JNumber (read other :: Double)
+-----------------------------------------
+
+
+-----------------------------------------
+-- Output JSON
+showJson :: JValue -> String
+showJson JNull         = "null"
+showJson (JString s)   = show s
+showJson (JBool True)  = "true"
+showJson (JBool False) = "false"
+showJson (JNumber n)   = show n
+
+showJson (JArray a)  = "[" ++ array a ++ "]"
+    where array xs = intercalate "," (map showJson xs)
+
+showJson (JObject o) = "{" ++ pairs o ++ "}"
+    where pairs ps    = intercalate ", " (map pair ps)
+          pair (s, v) = "\"" ++ s ++ "\":" ++ showJson v
+-----------------------------------------
 
 
 main :: IO ()
-main = interact compressJson
+main = interact (showJson . readJson . compressJson)
