@@ -3,10 +3,10 @@ import           Data.List (intercalate)
 
 data JValue = JString String
             | JBool   Bool
-	    | JNumber Double
-	    | JObject [(String, JValue)]
-	    | JArray  [JValue]
-	    | JNull
+            | JNumber Double
+            | JObject [(String, JValue)]
+            | JArray  [JValue]
+            | JNull
 
 
 compressJson :: String -> String
@@ -36,7 +36,7 @@ instance Show JValue where
 
     show (JObject o) = "{" ++ pairs o ++ "}"
         where pairs ps    = intercalate ", " (map pair ps)
-	      pair (s, v) = "\"" ++ s ++ "\" : " ++ show v
+              pair (s, v) = "\"" ++ s ++ "\" : " ++ show v
 
 
 main :: IO ()
