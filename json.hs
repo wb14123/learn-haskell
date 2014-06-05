@@ -77,7 +77,7 @@ readJValue "true"     = JBool True
 readJValue "false"    = JBool False
 readJValue "null"     = JNull
 readJValue ('\"': xs) = (JString . removeEnclose) ('\"':xs)
-readJValue other         = JNumber (read other :: Double)
+readJValue other      = JNumber (read other :: Double)
 -----------------------------------------
 
 
