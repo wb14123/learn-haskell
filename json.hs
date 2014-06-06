@@ -3,6 +3,7 @@
 import Data.List (intercalate)
 import Control.Exception
 import Data.Typeable
+import Debug.Hood.Observe
 
 
 -----------------------------------------
@@ -38,7 +39,7 @@ compressJson json = compress json False False
           compress (x    : xs) True  _     = x :        compress xs True        False
           compress (x    : xs) False _     = parse x ++ compress xs False       False
 
-          parse c = if c `elem` " \t\n"
+          parse c = if c `elem` " \t\n\v\f\r"
               then []
               else [c]
 -----------------------------------------
@@ -47,26 +48,31 @@ compressJson json = compress json False False
 -----------------------------------------
 -- Split JSON, used in parse JSON
 splitJson :: Char -> String -> [String]
-splitJson spliter json       = innerSplit json spliter Nothing ""
+splitJson spliter json       = innerSplit' json spliter "" ""
 
-innerSplit :: String -> Char -> Maybe Char -> String -> [String]
+innerSplit' :: String -> Char -> String -> String -> [String]
+innerSplit'  = observe "Informative name for innerSplit"  innerSplit
+
+innerSplit :: String -> Char -> String -> String -> [String]
 innerSplit ""        _       _        word = [word]
-innerSplit ('[' :xs) spliter Nothing  word = innerSplit xs spliter (Just ']')  (word ++ "[")
-innerSplit ('{' :xs) spliter Nothing  word = innerSplit xs spliter (Just '}')  (word ++ "{")
-innerSplit ('\"':xs) spliter Nothing  word = innerSplit xs spliter (Just '\"') (word ++ "\"")
 
-innerSplit ('\\':xs) spliter (Just '\"') word =
-    innerSplit ys spliter (Just '\"') (word ++ ['\\', y])
+innerSplit ('\\':xs) spliter encloser word =
+    innerSplit ys spliter encloser (word ++ ['\\', y])
     where y:ys = xs
 
-innerSplit (x   :xs) spliter Nothing  word = if spliter == x
-    then word : innerSplit xs spliter Nothing ""
-    else        innerSplit xs spliter Nothing (word ++ [x])
+innerSplit ('\"':xs) spliter ('\"':es) word = innerSplit xs spliter es              (word ++ "\"")
+innerSplit ('\"':xs) spliter encloser  word = innerSplit xs spliter ('\"':encloser) (word ++ "\"")
+innerSplit (x   :xs) spliter ('\"':es) word = innerSplit xs spliter ('\"':es)       (word ++ [x])
+innerSplit ('[' :xs) spliter encloser  word = innerSplit xs spliter (']' :encloser) (word ++ "[")
+innerSplit ('{' :xs) spliter encloser  word = innerSplit xs spliter ('}' :encloser) (word ++ "{")
 
-innerSplit (x   :xs) spliter (Just encloser) word = if encloser == x
-    then innerSplit xs spliter Nothing         (word ++ [x])
-    else innerSplit xs spliter (Just encloser) (word ++ [x])
+innerSplit (x   :xs) spliter ""        word = if spliter == x
+    then word : innerSplit xs spliter "" ""
+    else        innerSplit xs spliter "" (word ++ [x])
 
+innerSplit (x   :xs) spliter (e:es)    word = if e == x
+    then innerSplit xs spliter es     (word ++ [x])
+    else innerSplit xs spliter (e:es) (word ++ [x])
 
 removeEnclose :: String -> String
 removeEnclose (_:s) = innerRemove s
@@ -98,7 +104,9 @@ readJValue "true"     = JBool True
 readJValue "false"    = JBool False
 readJValue "null"     = JNull
 readJValue ('\"': xs) = (JString . removeEnclose) ('\"':xs)
-readJValue other      = JNumber (read other :: Double)
+readJValue other      = readNumber (reads other :: [(Double, String)])
+    where readNumber [(n, "")] = JNumber n
+          readNumber _         = (throw . ParseError) other
 -----------------------------------------
 
 
@@ -122,3 +130,4 @@ showJson (JObject o) = "{" ++ pairs o ++ "}"
 
 main :: IO ()
 main = interact (showJson . readJson . compressJson)
+-- main = interact compressJson
