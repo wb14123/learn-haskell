@@ -1,6 +1,12 @@
+{-# LANGUAGE DeriveDataTypeable #-}
+
 import Data.List (intercalate)
+import Control.Exception
+import Data.Typeable
 
 
+-----------------------------------------
+-- Type defination
 data JValue = JString String
             | JBool   Bool
             | JNumber Double
@@ -8,6 +14,17 @@ data JValue = JString String
             | JArray  [JValue]
             | JNull
               deriving (Show)
+-----------------------------------------
+
+
+-----------------------------------------
+-- Exceptions
+data JException = ParseError String
+    deriving (Show, Typeable)
+
+instance Exception JException
+
+-----------------------------------------
 
 
 -----------------------------------------
@@ -67,6 +84,7 @@ readJObjects = JObject . map readJObject . splitJson ',' . removeEnclose
 readJObject :: String -> (String, JValue)
 readJObject = parse . splitJson ':'
     where parse [k, v] = (removeEnclose k, readJson v)
+          parse other  = (throw . ParseError . show) other
 
 readJArray :: String -> JValue
 readJArray = JArray . map readJson . splitJson ',' . removeEnclose
