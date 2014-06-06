@@ -55,6 +55,10 @@ innerSplit ('[' :xs) spliter Nothing  word = innerSplit xs spliter (Just ']')  (
 innerSplit ('{' :xs) spliter Nothing  word = innerSplit xs spliter (Just '}')  (word ++ "{")
 innerSplit ('\"':xs) spliter Nothing  word = innerSplit xs spliter (Just '\"') (word ++ "\"")
 
+innerSplit ('\\':xs) spliter (Just '\"') word =
+    innerSplit ys spliter (Just '\"') (word ++ ['\\', y])
+    where y:ys = xs
+
 innerSplit (x   :xs) spliter Nothing  word = if spliter == x
     then word : innerSplit xs spliter Nothing ""
     else        innerSplit xs spliter Nothing (word ++ [x])
