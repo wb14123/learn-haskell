@@ -47,28 +47,40 @@ compressJson json = compress json False False
 -----------------------------------------
 -- Split JSON, used in parse JSON
 splitJson :: Char -> String -> [String]
-splitJson spliter json       = innerSplit json spliter "" ""
+splitJson spliter json       = word: remind
+    where (word, remind) = innerSplit json spliter ""
 
-innerSplit :: String -> Char -> String -> String -> [String]
-innerSplit ""        _       _        word = [word]
+innerSplit :: String -> Char -> String -> (String, [String])
+innerSplit ""        _       _ = ("", [])
 
-innerSplit ('\\':xs) spliter encloser word =
-    innerSplit ys spliter encloser (word ++ ['\\', y])
-    where y:ys = xs
+innerSplit ('\\':xs) spliter encloser = ('\\':y:word, remind)
+    where (word, remind) = innerSplit ys spliter encloser
+          y:ys = xs
 
-innerSplit ('\"':xs) spliter ('\"':es) word = innerSplit xs spliter es              (word ++ "\"")
-innerSplit ('\"':xs) spliter encloser  word = innerSplit xs spliter ('\"':encloser) (word ++ "\"")
-innerSplit (x   :xs) spliter ('\"':es) word = innerSplit xs spliter ('\"':es)       (word ++ [x])
-innerSplit ('[' :xs) spliter encloser  word = innerSplit xs spliter (']' :encloser) (word ++ "[")
-innerSplit ('{' :xs) spliter encloser  word = innerSplit xs spliter ('}' :encloser) (word ++ "{")
+innerSplit ('\"':xs) spliter ('\"':es) = ('\"':word, remind)
+    where (word, remind) = innerSplit xs spliter es
 
-innerSplit (x   :xs) spliter ""        word = if spliter == x
-    then word : innerSplit xs spliter "" ""
-    else        innerSplit xs spliter "" (word ++ [x])
+innerSplit ('\"':xs) spliter encloser  = ('\"':word, remind)
+    where (word, remind) = innerSplit xs spliter ('\"':encloser)
 
-innerSplit (x   :xs) spliter (e:es)    word = if e == x
-    then innerSplit xs spliter es     (word ++ [x])
-    else innerSplit xs spliter (e:es) (word ++ [x])
+innerSplit (x   :xs) spliter ('\"':es) = (x:word, remind)
+    where (word, remind) = innerSplit xs spliter ('\"':es)
+
+innerSplit ('[' :xs) spliter encloser = ('[':word, remind)
+    where (word, remind) = innerSplit xs spliter (']' :encloser)
+
+innerSplit ('{' :xs) spliter encloser = ('{':word, remind)
+    where (word, remind) = innerSplit xs spliter ('}' :encloser)
+
+innerSplit (x   :xs) spliter "" = if spliter == x
+    then ("", word:remind)
+    else (x:word, remind)
+    where (word, remind) = innerSplit xs spliter ""
+
+innerSplit (x   :xs) spliter (e:es) = (x:word, remind)
+    where (word, remind) = if e == x
+                               then innerSplit xs spliter es
+                               else innerSplit xs spliter (e:es)
 
 removeEnclose :: String -> String
 removeEnclose (_:s) = innerRemove s
