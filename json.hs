@@ -3,7 +3,6 @@
 import Data.List (intercalate)
 import Control.Exception
 import Data.Typeable
-import Debug.Hood.Observe
 
 
 -----------------------------------------
@@ -48,10 +47,7 @@ compressJson json = compress json False False
 -----------------------------------------
 -- Split JSON, used in parse JSON
 splitJson :: Char -> String -> [String]
-splitJson spliter json       = innerSplit' json spliter "" ""
-
-innerSplit' :: String -> Char -> String -> String -> [String]
-innerSplit'  = observe "Informative name for innerSplit"  innerSplit
+splitJson spliter json       = innerSplit json spliter "" ""
 
 innerSplit :: String -> Char -> String -> String -> [String]
 innerSplit ""        _       _        word = [word]
