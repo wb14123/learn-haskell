@@ -80,6 +80,8 @@ removeEnclose (_:s) = innerRemove s
 -----------------------------------------
 -- Parse JSON
 readJson :: String -> JValue
+readJson "[]"      = JArray []
+readJson "{}"      = JObject []
 readJson ('{':xs)  = readJObjects ('{':xs)
 readJson ('[':xs)  = readJArray   ('[':xs)
 readJson xs        = readJValue   xs
