@@ -51,6 +51,7 @@ splitJson spliter json       = word: remind
     where (word, remind) = innerSplit json spliter ""
 
 innerSplit :: String -> Char -> String -> (String, [String])
+-- innnerSplit: json, spliter, encloser -> (word, remind)
 innerSplit ""        _       _ = ("", [])
 
 innerSplit ('\\':xs) spliter encloser = ('\\':y:word, remind)
@@ -66,18 +67,20 @@ innerSplit ('\"':xs) spliter encloser  = ('\"':word, remind)
 innerSplit (x   :xs) spliter ('\"':es) = (x:word, remind)
     where (word, remind) = innerSplit xs spliter ('\"':es)
 
-innerSplit ('[' :xs) spliter encloser = ('[':word, remind)
+innerSplit ('[' :xs) spliter encloser  = ('[':word, remind)
     where (word, remind) = innerSplit xs spliter (']' :encloser)
 
-innerSplit ('{' :xs) spliter encloser = ('{':word, remind)
+innerSplit ('{' :xs) spliter encloser  = ('{':word, remind)
     where (word, remind) = innerSplit xs spliter ('}' :encloser)
 
 innerSplit (x   :xs) spliter "" = if spliter == x
+    -- if we meet the spliter, start to process next word
     then ("", word:remind)
     else (x:word, remind)
     where (word, remind) = innerSplit xs spliter ""
 
 innerSplit (x   :xs) spliter (e:es) = (x:word, remind)
+    -- if we meet the encloser, remove the encloser from the stack
     where (word, remind) = if e == x
                                then innerSplit xs spliter es
                                else innerSplit xs spliter (e:es)
