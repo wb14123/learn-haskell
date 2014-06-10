@@ -73,17 +73,17 @@ innerSplit ('[' :xs) spliter encloser  = ('[':word, remind)
 innerSplit ('{' :xs) spliter encloser  = ('{':word, remind)
     where (word, remind) = innerSplit xs spliter ('}' :encloser)
 
-innerSplit (x   :xs) spliter "" = if spliter == x
+innerSplit (x   :xs) spliter ""
     -- if we meet the spliter, start to process next word
-    then ("", word:remind)
-    else (x:word, remind)
+    | spliter == x = ("", word:remind)
+    | otherwise = (x:word, remind)
     where (word, remind) = innerSplit xs spliter ""
 
 innerSplit (x   :xs) spliter (e:es) = (x:word, remind)
     -- if we meet the encloser, remove the encloser from the stack
-    where (word, remind) = if e == x
-                               then innerSplit xs spliter es
-                               else innerSplit xs spliter (e:es)
+    where (word, remind)
+              | e == x = innerSplit xs spliter es
+              | otherwise = innerSplit xs spliter (e:es)
 
 removeEnclose :: String -> String
 removeEnclose (_:s) = innerRemove s
